@@ -30,3 +30,27 @@
 *.exe
 *.out
 *.app
+
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+
+
+# Vim Swap
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Vim Session
+Session.vim
+Sessionx.vim
+
+# Vim Temporary
+.netrwhist
+*~
+# Vim Auto-generated tag files
+tags
+
+# Vim Persistent undo
+[._]*.un~
