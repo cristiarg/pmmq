@@ -18,7 +18,9 @@
 
 TEST_CASE("Broker 1")
 {
-    const auto xb1 = std::make_shared<Broker>();
+    const auto xb1 = std::make_shared<pmmq::Broker>();
     REQUIRE(xb1 != nullptr);
+
+    const auto mess1 = std::make_shared<pmmq::Message>()
 }
 
