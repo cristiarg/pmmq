@@ -1,26 +1,91 @@
 #define CATCH_CONFIG_MAIN
 
+#include <iostream>
+
 #include "catch.hpp"
+
 #include "Message.hpp"
 #include "Broker.hpp"
+#include "IProducer.hpp"
+#include "IConsumer.hpp"
 
-//unsigned int Factorial( unsigned int number ) {
-//    return number <= 1 ? number : Factorial(number-1)*number;
-//}
+class Producer1 : public pmmq::IProducer {
+public:
+    Producer1(pmmq::XBroker& _broker)
+        : pmmq::IProducer(_broker)
+    {
+    }
 
-//TEST_CASE( "Factorials are computed", "[factorial]" )
-//{
-//    //REQUIRE( Factorial(1) == 1 );
-//    //REQUIRE( Factorial(2) == 2 );
-//    //REQUIRE( Factorial(3) == 6 );
-//    //REQUIRE( Factorial(10) == 3628800 );
-//}
+    ~Producer1() override
+    {
+    }
+};
+
+class Consumer1 : public pmmq::IConsumer {
+public:
+    Consumer1(const wchar_t _message_type)
+        : pmmq::IConsumer(_message_type)
+        , consumed_count{0}
+    {
+    }
+
+    Consumer1::~Consumer1() override
+    {
+    }
+
+    void Consumer1::consume(pmmq::XMessage& _message) const override
+    {
+        REQUIRE(_message->contents.size() > 0);
+        ++consumed_count;
+    }
+
+    int get_consumed_count() const
+    {
+        return consumed_count;
+    }
+
+private:
+    mutable int consumed_count;
+};
+
 
 TEST_CASE("Broker 1")
 {
-    const auto xb1 = std::make_shared<pmmq::Broker>();
+    int res{0};
+
+    auto xb1 = std::make_shared<pmmq::Broker>();
     REQUIRE(xb1 != nullptr);
 
-    const auto mess1 = std::make_shared<pmmq::Message>()
+    auto prod1 = std::make_shared<Producer1>(xb1);
+    REQUIRE(prod1 != nullptr);
+
+    auto cons1 = std::make_shared<Consumer1>(L'a');
+    REQUIRE(prod1 != nullptr);
+
+    res = xb1->subscribe(nullptr);
+    REQUIRE(res != 0);
+    res = xb1->subscribe(cons1);
+    REQUIRE(res == 0);
+    res = xb1->subscribe(cons1);
+    REQUIRE(res != 0);
+
+    const int message_count = 7;
+
+    for (int i = 0; i < message_count; i++) {
+        auto mess1 = std::make_shared<pmmq::Message>(L'a', L"a message of type 'a'");
+        REQUIRE(mess1 != nullptr);
+
+        res = prod1->dispatch(mess1);
+        REQUIRE(res == 0);
+    }
+
+    res = xb1->unsubscribe(nullptr);
+    REQUIRE(res != 0);
+    res = xb1->unsubscribe(cons1);
+    REQUIRE(res == 0);
+    res = xb1->unsubscribe(cons1);
+    REQUIRE(res != 0);
+
+    REQUIRE(message_count== cons1->get_consumed_count());
 }
 

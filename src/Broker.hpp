@@ -3,14 +3,13 @@
 #include <vector>
 #include <map>
 #include <memory>
-#include <mutex>
+#include <set>
 
 #include "Message.hpp"
 #include "IConsumer.hpp"
 
 namespace pmmq {
 
-    // TODO: singleton?
     class Broker {
     public:
         Broker();
@@ -19,15 +18,17 @@ namespace pmmq {
         int subscribe(const XIConsumer& _consumer);
         int unsubscribe(const XIConsumer& _consumer);
 
+        int dispatch(XMessage& _message) const;
+
     private:
         using ConsumerVector = std::vector<XIConsumer>;
         using MessageTypeToConsumerVectorMap = std::map<wchar_t, ConsumerVector>;
+        using ConsumerSet = std::set<XIConsumer>;
 
-        //std::mutex concurrent_access_to_message_consumers_mapping;
+        MessageTypeToConsumerVectorMap mapping;
 
-        MessageTypeToConsumerVectorMap message_type_to_consumers_mapping;
+        ConsumerSet bookkeeping;
     };
 
     using XBroker = std::shared_ptr<Broker>;
-
 }

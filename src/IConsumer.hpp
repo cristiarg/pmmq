@@ -16,9 +16,9 @@ namespace pmmq {
 
         virtual ~IConsumer() = 0 {};
 
-        wchar_t getSubscribedMessageType() const;
+        wchar_t get_message_type() const;
 
-        virtual void consume(const XMessage& _message) const = 0;
+        virtual void consume(XMessage& _message) const = 0;
 
     private:
         const wchar_t message_type;

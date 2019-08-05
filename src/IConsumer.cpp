@@ -7,7 +7,7 @@ namespace pmmq {
     {
     }
 
-    wchar_t IConsumer::getSubscribedMessageType() const
+    wchar_t IConsumer::get_message_type() const
     {
         return message_type;
     }
