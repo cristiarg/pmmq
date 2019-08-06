@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <strstream>
+#include <thread>
 
 #include "catch.hpp"
 
@@ -19,7 +20,20 @@ public:
     {
     }
 
-    void produce()
+    void start_produce()
+    {
+        internal_join();
+
+        produce_thread = std::thread(&Producer1::internal_produce, this);
+    }
+
+    void end_produce()
+    {
+        internal_join();
+    }
+
+private:
+    void internal_produce()
     {
         for (int i = 0; i < message_count; i++) {
             std::wstringstream ss;
@@ -29,11 +43,19 @@ public:
         }
     }
 
+    void internal_join() {
+        if (produce_thread.joinable()) {
+            produce_thread.join();
+        }
+    }
+
 private:
     pmmq::XBroker broker;
     const wchar_t message_type;
     const int id;
     const int message_count;
+
+    std::thread produce_thread;
 };
 using XProducer1 = std::shared_ptr<Producer1>;
 
@@ -52,7 +74,7 @@ public:
 
     void Consumer1::consume(pmmq::XMessage& _message) const override
     {
-        std::wcout << _message->contents << std::endl;
+        //std::wcout << _message->contents << std::endl;
         REQUIRE(_message->contents.size() > 0);
         ++consumed_count;
     }
@@ -66,9 +88,9 @@ private:
     mutable int consumed_count;
 };
 
-static const int PROD_COUNT{ 3 };
-static const int CONS_COUNT{ 275 };
-static const int MESS_COUNT{ 23 };
+static const int PROD_COUNT{ 77 };
+static const int CONS_COUNT{ 55 };
+static const int MESS_COUNT{ 110 };
 
 
 TEST_CASE("Broker 1")
@@ -93,7 +115,11 @@ TEST_CASE("Broker 1")
     }
 
     for (auto prod : prod_vec) {
-        prod->produce();
+        prod->start_produce();
+    }
+
+    for (auto prod : prod_vec) {
+        prod->end_produce();
     }
 
     for (auto cons : cons_vec) {
