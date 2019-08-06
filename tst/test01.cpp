@@ -37,7 +37,7 @@ private:
     {
         for (int i = 0; i < message_count; i++) {
             std::wstringstream ss;
-            ss << L"Message " << (i + 1) << L" of type " << message_type << L" from producer " << id;
+            ss << L"Message " << (i + 1) << L" of type '" << message_type << L"' from producer " << id;
             auto m = std::make_shared<pmmq::Message>(message_type, ss.str());
             broker->dispatch(m);
         }
@@ -74,7 +74,7 @@ public:
 
     void Consumer1::consume(pmmq::XMessage& _message) const override
     {
-        //std::wcout << _message->contents << std::endl;
+        std::wcout << _message->contents << std::endl;
         REQUIRE(_message->contents.size() > 0);
         ++consumed_count;
     }
@@ -88,9 +88,9 @@ private:
     mutable int consumed_count;
 };
 
-static const int PROD_COUNT{ 77 };
-static const int CONS_COUNT{ 55 };
-static const int MESS_COUNT{ 110 };
+static const int PROD_COUNT{ 11 };
+static const int CONS_COUNT{ 7 };
+static const int MESS_COUNT{ 23 };
 
 
 TEST_CASE("Broker 1")

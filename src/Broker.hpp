@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <mutex>
 
 #include "Message.hpp"
 #include "IConsumer.hpp"
@@ -28,6 +29,8 @@ namespace pmmq {
         MessageTypeToConsumerVectorMap mapping;
 
         ConsumerSet bookkeeping;
+
+        mutable std::mutex dispatch_mutex;
     };
 
     using XBroker = std::shared_ptr<Broker>;

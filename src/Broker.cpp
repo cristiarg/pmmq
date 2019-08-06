@@ -43,13 +43,16 @@ namespace pmmq {
         }
     }
 
-
     int Broker::dispatch(XMessage& _message) const
     {
         const auto consumer_vec_it = mapping.find(_message->type);
         if (consumer_vec_it != mapping.end()) {
             for (auto consume_it : consumer_vec_it->second) {
+                std::lock_guard<std::mutex> lkg(dispatch_mutex);
+
                 (*consume_it).consume(_message);
+
+                std::this_thread::yield();
             }
             return 0;
         }
