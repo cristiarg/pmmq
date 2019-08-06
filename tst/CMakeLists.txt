@@ -5,7 +5,6 @@ project(pmmq_tests)
 
 add_executable (test01 "test01.cpp"
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/IConsumer.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/IProducer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/Broker.cpp
     )
 target_include_directories(test01 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)

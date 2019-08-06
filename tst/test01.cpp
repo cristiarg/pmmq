@@ -1,25 +1,42 @@
 #define CATCH_CONFIG_MAIN
 
 #include <iostream>
+#include <strstream>
 
 #include "catch.hpp"
 
 #include "Message.hpp"
 #include "Broker.hpp"
-#include "IProducer.hpp"
 #include "IConsumer.hpp"
 
-class Producer1 : public pmmq::IProducer {
+class Producer1 {
 public:
-    Producer1(pmmq::XBroker& _broker)
-        : pmmq::IProducer(_broker)
+    Producer1(pmmq::XBroker& _broker, wchar_t _message_type, int _id, int _message_count)
+        : broker{_broker}
+        , message_type{_message_type}
+        , id{_id}
+        , message_count{_message_count}
     {
     }
 
-    ~Producer1() override
+    void produce()
     {
+        for (int i = 0; i < message_count; i++) {
+            std::wstringstream ss;
+            ss << L"Message " << (i + 1) << L" of type " << message_type << L" from producer " << id;
+            auto m = std::make_shared<pmmq::Message>(message_type, ss.str());
+            broker->dispatch(m);
+        }
     }
+
+private:
+    pmmq::XBroker broker;
+    const wchar_t message_type;
+    const int id;
+    const int message_count;
 };
+using XProducer1 = std::shared_ptr<Producer1>;
+
 
 class Consumer1 : public pmmq::IConsumer {
 public:
@@ -35,6 +52,7 @@ public:
 
     void Consumer1::consume(pmmq::XMessage& _message) const override
     {
+        std::wcout << _message->contents << std::endl;
         REQUIRE(_message->contents.size() > 0);
         ++consumed_count;
     }
@@ -48,44 +66,39 @@ private:
     mutable int consumed_count;
 };
 
+static const int PROD_COUNT{ 3 };
+static const int CONS_COUNT{ 275 };
+static const int MESS_COUNT{ 23 };
+
 
 TEST_CASE("Broker 1")
 {
     int res{0};
 
-    auto xb1 = std::make_shared<pmmq::Broker>();
-    REQUIRE(xb1 != nullptr);
+    auto brok = std::make_shared<pmmq::Broker>();
+    REQUIRE(brok != nullptr);
 
-    auto prod1 = std::make_shared<Producer1>(xb1);
-    REQUIRE(prod1 != nullptr);
-
-    auto cons1 = std::make_shared<Consumer1>(L'a');
-    REQUIRE(prod1 != nullptr);
-
-    res = xb1->subscribe(nullptr);
-    REQUIRE(res != 0);
-    res = xb1->subscribe(cons1);
-    REQUIRE(res == 0);
-    res = xb1->subscribe(cons1);
-    REQUIRE(res != 0);
-
-    const int message_count = 7;
-
-    for (int i = 0; i < message_count; i++) {
-        auto mess1 = std::make_shared<pmmq::Message>(L'a', L"a message of type 'a'");
-        REQUIRE(mess1 != nullptr);
-
-        res = prod1->dispatch(mess1);
-        REQUIRE(res == 0);
+    std::vector<XProducer1> prod_vec;
+    for (int i = 0; i < PROD_COUNT; i++) {
+        prod_vec.push_back(std::make_shared<Producer1>(brok, L'a', (i + 1), MESS_COUNT));
     }
 
-    res = xb1->unsubscribe(nullptr);
-    REQUIRE(res != 0);
-    res = xb1->unsubscribe(cons1);
-    REQUIRE(res == 0);
-    res = xb1->unsubscribe(cons1);
-    REQUIRE(res != 0);
+    std::vector<pmmq::XIConsumer> cons_vec;
+    for (int i = 0; i < CONS_COUNT; i++) {
+        auto cons = std::make_shared<Consumer1>(L'a');
 
-    REQUIRE(message_count== cons1->get_consumed_count());
+        brok->subscribe(cons);
+
+        cons_vec.push_back(cons);
+    }
+
+    for (auto prod : prod_vec) {
+        prod->produce();
+    }
+
+    for (auto cons : cons_vec) {
+        const Consumer1* const cons1 = dynamic_cast<Consumer1*>(cons.get());
+        REQUIRE(MESS_COUNT * PROD_COUNT == cons1->get_consumed_count());
+    }
 }
 
