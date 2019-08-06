@@ -1,0 +1,36 @@
+- start from a non multithreading tag
+
+- discuss slow performance of such approach
+- discuss bottlenecks
+- discuss entities/roles: producer, consumer, middle tier - broker
+
+- PRODUCER:
+- add a few producer threads written ad-hoc that submit
+  messages to the broker
+- demonstrate race condition
+- Vocabulary: thread function/functor/lambda
+
+- BROKER:
+- guard access to the synchronous dispatch loop
+- race condition is eliminated
+- Vocabulary: mutex
+
+- CONSUMER:
+- decouple consumer internally - TODO
+- add a message queue and a consumption loop using polling
+- demonstrate more performance
+- Vocabulary: mutex, polling
+
+- CONSUMER:
+- replace polling by a condition variable
+- Vocabulary: condition_variable
+
+- BROKER:
+- further decoupling:
+        - subscribe/unsubscribe queue
+        - message queue
+        - worker thread
+
+Vocabulary still to be covered:
+- async/future/promise
+- deadlock
