@@ -3,6 +3,7 @@
 #include <iostream>
 #include <strstream>
 #include <thread>
+#include <atomic>
 
 #include "catch.hpp"
 
@@ -65,18 +66,37 @@ public:
     Consumer1(const wchar_t _message_type)
         : pmmq::IConsumer(_message_type)
         , consumed_count{0}
+        , stop{false}
     {
+        consume_thread = std::thread( &Consumer1::internal_consume, this );
     }
 
-    Consumer1::~Consumer1() override
+    ~Consumer1() override
     {
+        end_consume();
     }
 
-    void Consumer1::consume(pmmq::XMessage& _message) const override
+    void consume(pmmq::XMessage& _message) const override
     {
-        std::wcout << _message->contents << std::endl;
-        REQUIRE(_message->contents.size() > 0);
-        ++consumed_count;
+        // poll to see when we can transfer message
+        while (true) {
+            {
+                std::lock_guard<std::mutex> lck(message_mutex);
+                if (message == nullptr) {
+                    message = _message;
+                    break;
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    }
+
+    void end_consume()
+    {
+        stop.store(true);
+        if (consume_thread.joinable()) {
+            consume_thread.join();
+        }
     }
 
     int get_consumed_count() const
@@ -85,12 +105,65 @@ public:
     }
 
 private:
-    mutable int consumed_count;
+    void internal_consume()
+    {
+        while (!stop.load()) {
+            pmmq::XMessage locally_copied_message;
+
+            // poll for a message
+            while (!stop.load()) {
+                {
+                    std::lock_guard<std::mutex> lck(message_mutex);
+                    if (message != nullptr) {
+                        locally_copied_message = message;
+                        message = nullptr;
+                        break;
+                    }
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            }
+
+            locked_consume(locally_copied_message);
+        }
+
+        {
+            pmmq::XMessage locally_copied_message;
+
+            // check for a last message
+            std::lock_guard<std::mutex> lck(message_mutex);
+            if (message != nullptr) {
+                locally_copied_message = message;
+                message = nullptr;
+            }
+
+            locked_consume(locally_copied_message);
+        }
+    }
+
+    void locked_consume(pmmq::XMessage& _message)
+    {
+        if (_message != nullptr) {
+            //std::wcout << _message->contents << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            ++consumed_count;
+            _message = nullptr;
+        }
+    }
+
+private:
+    int consumed_count;
+
+    std::thread consume_thread;
+
+    mutable pmmq::XMessage message;
+    mutable std::mutex message_mutex;
+
+    std::atomic_bool stop;
 };
 
-static const int PROD_COUNT{ 11 };
-static const int CONS_COUNT{ 7 };
-static const int MESS_COUNT{ 23 };
+static const int PROD_COUNT{ 4 };
+static const int CONS_COUNT{ 3 };
+static const int MESS_COUNT{ 30 };
 
 
 TEST_CASE("Broker 1")
@@ -120,6 +193,11 @@ TEST_CASE("Broker 1")
 
     for (auto prod : prod_vec) {
         prod->end_produce();
+    }
+
+    for (auto cons : cons_vec) {
+        Consumer1* const cons1 = dynamic_cast<Consumer1*>(cons.get());
+        cons1->end_consume();
     }
 
     for (auto cons : cons_vec) {

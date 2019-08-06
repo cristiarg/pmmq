@@ -1,0 +1,65 @@
+- start from a non multithreading tag
+
+- discuss slow performance of such approach
+- discuss bottlenecks
+- discuss entities/roles: producer, consumer, middle tier - broker
+
+- PRODUCER:
+- add a few producer threads written ad-hoc that submit
+  messages to the broker
+- demonstrate race condition (maybe check also in realease 
+- Vocabulary: std::thread, thread function (functor, lambda, member function), join,
+  joinable
+
+- BROKER:
+- guard access to the synchronous dispatch loop
+- race condition is eliminated
+- discuss granularity of the guard (lock for all consumers, lock for one
+  consumer)
+- Vocabulary: std::mutex, std::lock_guard (RAII), std::this_thread, yield
+
+- CONSUMER:
+- what if consumer takes some time to process the messages
+- at this point broker and all consumers sit in the same - 'main' - thread
+- make the consumer consume in a different thread
+- allow a one-message 'queue' buffer between the broker and the consumer
+- use a message pointer and a mutex
+- not more performant, right? why?
+- the broker is waiting for the consumer to consume since there is no more
+  space to push messages
+- Vocabulary: polling, this_thread::sleep, std::atomic
+
+
+- CONSUMER:
+- demonstrate more throughput
+- discuss concurrent access to std::cout and possible solutions
+- TODO: a class to wrap std::cout for thread safety
+- Vocabulary: std::thread, join, mutex
+
+- CONSUMER:
+- decouple consumer internally - TODO
+- add a message queue and a consumption loop using polling
+- demonstrate more performance
+- Vocabulary: sleep_for, mutex, polling
+
+- CONSUMER:
+- replace polling by a condition variable
+- Vocabulary: condition_variable
+
+- BROKER
+- consolitate execution of the broker logic in its own thread
+
+- BROKER:
+- what if consumers are already located in different threads
+- how do we mitigate subscribe/unsubscribe
+- create a sub/unsub queue and make the worker thread 
+
+- BROKER:
+- further decoupling:
+        - subscribe/unsubscribe queue
+        - message queue
+        - worker thread
+
+STILL TO BE COVERED:
+- async/future/promise
+- deadlock
