@@ -8,15 +8,19 @@
 - add a few producer threads written ad-hoc that submit
   messages to the broker
 - demonstrate race condition (maybe check also in realease 
-- Vocabulary: std::thread, thread function (functor, lambda, member function), join,
-  joinable
+- Vocabulary:
+        - std::thread, thread function (functor, lambda, member function),
+        - race_condition
+        - join, joinable, race condition
 
 - BROKER:
 - guard access to the synchronous dispatch loop
 - race condition is eliminated
 - discuss granularity of the guard (lock for all consumers, lock for one
   consumer)
-- Vocabulary: std::mutex, std::lock_guard (RAII), std::this_thread, yield
+- Vocabulary:
+        - std::mutex, std::lock_guard (RAII)
+        - std::this_thread, yield
 
 - CONSUMER:
 - what if consumer takes some time to process the messages
@@ -27,11 +31,20 @@
 - not more performant, right? why?
 - the broker is waiting for the consumer to consume since there is no more
   space to push messages
-- Vocabulary: polling, this_thread::sleep, std::atomic
-
+- Vocabulary:
+        - polling, this_thread::sleep, std::atomic
 
 - CONSUMER:
 - demonstrate more throughput
+- transform hte one-message queue into a proper queue
+
+
+- CONSUMER:
+- refactor to move all boilerplate code into the interface and only leave
+  the proper consumption in the derived class
+
+
+
 - discuss concurrent access to std::cout and possible solutions
 - TODO: a class to wrap std::cout for thread safety
 - Vocabulary: std::thread, join, mutex
