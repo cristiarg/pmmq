@@ -79,7 +79,7 @@ public:
         end_consume();
     }
 
-    void consume(pmmq::XMessage& _message) const override
+    void consume(const pmmq::XMessage& _message) const override
     {
         {
             std::lock_guard<std::mutex> lck(message_mutex);
