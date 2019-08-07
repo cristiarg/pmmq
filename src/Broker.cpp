@@ -21,9 +21,9 @@ namespace pmmq {
     int Broker::unsubscribe(const XIConsumer& _consumer)
     {
         if (_consumer != nullptr) {
-            const auto it = bookkeeping.find(_consumer);
-            if (it != bookkeeping.end()) {
-                bookkeeping.erase(it);
+            const auto it_bk = bookkeeping.find(_consumer);
+            if (it_bk != bookkeeping.end()) {
+                bookkeeping.erase(it_bk);
                 const auto message_type = _consumer->get_message_type();
                 auto message_type_mapping = mapping[message_type];
                 for (auto it = message_type_mapping.begin(); it != message_type_mapping.end(); it++) {
