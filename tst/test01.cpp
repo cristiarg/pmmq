@@ -69,6 +69,7 @@ public:
         : pmmq::IConsumer(_message_type)
         , consumed_count{0}
         , stop{false}
+        , messages_might_be_available{false}
     {
         consume_thread = std::thread( &Consumer1::internal_consume, this );
     }
@@ -83,6 +84,7 @@ public:
         {
             std::lock_guard<std::mutex> lck(message_mutex);
             message_queue.push(_message);
+            messages_might_be_available = true;
         }
         message_cv.notify_one();
     }
@@ -91,6 +93,8 @@ public:
     {
         stop.store(true);
         if (consume_thread.joinable()) {
+            messages_might_be_available = true;
+            message_cv.notify_one();
             consume_thread.join();
         }
     }
@@ -110,30 +114,37 @@ private:
             {
                 std::unique_lock<std::mutex> ulck{message_mutex};
                 message_cv.wait(ulck, [this]{
-                        return !message_queue.empty();
+                        return messages_might_be_available;
                     });
                 assert(locally_copied_message_queue.empty());
                 std::swap(locally_copied_message_queue, message_queue);
+
+                messages_might_be_available = false;
             }
 
             locked_consume(locally_copied_message_queue);
         }
 
-        {
-            std::queue<pmmq::XMessage> locally_copied_message_queue;
+        //{
+        //    std::queue<pmmq::XMessage> locally_copied_message_queue;
 
-            // check for the last messages
-            {
-                std::unique_lock<std::mutex> ulck{message_mutex};
-                message_cv.wait(ulck, [this]{
-                        return !message_queue.empty();
-                    });
-                assert(locally_copied_message_queue.empty());
-                std::swap(locally_copied_message_queue, message_queue);
-            }
+        //    // check for the last messages
+        //    {
+        //        std::unique_lock<std::mutex> ulck{message_mutex};
 
-            locked_consume(locally_copied_message_queue);
-        }
+        //        // not needed to wait on the variable since teh variable might only be triggered
+        //        // once while we're still in the main loop
+        //        //message_cv.wait(ulck, [this]{
+        //        //        return messages_might_be_available;
+        //        //    });
+        //        assert(locally_copied_message_queue.empty());
+        //        std::swap(locally_copied_message_queue, message_queue);
+
+        //        //messages_might_be_available= false;
+        //    }
+
+        //    locked_consume(locally_copied_message_queue);
+        //}
     }
 
     void locked_consume(std::queue<pmmq::XMessage>& _message_queue)
@@ -143,7 +154,7 @@ private:
             _message_queue.pop();
 
             //std::wcout << _message->contents << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            //std::this_thread::sleep_for(std::chrono::milliseconds(20));
             ++consumed_count;
         }
     }
@@ -157,13 +168,14 @@ private:
     mutable std::mutex message_mutex;
 
     mutable std::condition_variable message_cv;
+    mutable bool messages_might_be_available;
 
     std::atomic_bool stop;
 };
 
-static const int PROD_COUNT{ 3 };
-static const int CONS_COUNT{ 5 };
-static const int MESS_COUNT{ 12 };
+static const int PROD_COUNT{ 30 };
+static const int CONS_COUNT{ 50 };
+static const int MESS_COUNT{ 120 };
 
 
 TEST_CASE("Broker 1")

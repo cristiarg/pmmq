@@ -41,6 +41,7 @@
 - CONSUMER:
 - polling is not the best option
 - replace polling with a condition_variable
+- make the condition variable check on the availability of data
 - does it work?
 - to demonstrate, reduce to 1 to 1 producer/consumer and check in debug
 - somewhere it waits for a condition which will never be satisfied (eg:
@@ -50,6 +51,21 @@
   consumers terminate successfully, while others hang waiting for data (brkp
   at the end of the consumtion loop)
 - Vocabulary: condition_variable, demonstrate multithread debug features
+
+- CONSUMER:
+- introduce a flag to signal to the internal consume loop that data 'might' be
+  available
+- make the condition variable check on the flag instead of on the availability
+  of data
+- does it work?
+- no, still some threads make, most don't
+- where does the threads that do not make it wait now - in the last check for
+  data (after the loop, right?)
+- see whether the flag is set/reset in all the needed places
+- not needed to wait on the variable in the finishing section of the
+  processing loop since the variable might only be triggered once while the
+  consumer is still in the main loop
+- FOR /L %I IN (1,1,200) DO ( ..exe.. )
 
 -----------------------------------------------
 
@@ -62,11 +78,6 @@
 - TODO: a class to wrap std::cout for thread safety
 - Vocabulary: std::thread, join, mutex
 
-- CONSUMER:
-- decouple consumer internally - TODO
-- add a message queue and a consumption loop using polling
-- demonstrate more performance
-- Vocabulary: sleep_for, mutex, polling
 
 - BROKER
 - consolitate execution of the broker logic in its own thread
