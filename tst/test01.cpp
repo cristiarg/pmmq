@@ -5,6 +5,7 @@
 #include <thread>
 #include <atomic>
 #include <queue>
+#include <condition_variable>
 
 #include "catch.hpp"
 
@@ -79,15 +80,11 @@ public:
 
     void consume(pmmq::XMessage& _message) const override
     {
-        // poll to see when we can transfer message
-        while (true) {
-            {
-                std::lock_guard<std::mutex> lck(message_mutex);
-                message_queue.push(_message);
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        {
+            std::lock_guard<std::mutex> lck(message_mutex);
+            message_queue.push(_message);
         }
+        message_cv.notify_one();
     }
 
     void end_consume()
@@ -109,17 +106,14 @@ private:
         while (!stop.load()) {
             std::queue<pmmq::XMessage> locally_copied_message_queue;
 
-            // poll for a message
-            while (!stop.load()) {
-                {
-                    std::lock_guard<std::mutex> lck(message_mutex);
-                    if (!message_queue.empty()) {
-                        assert(locally_copied_message_queue.empty());
-                        std::swap(locally_copied_message_queue, message_queue);
-                        break;
-                    }
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            // check for new messages
+            {
+                std::unique_lock<std::mutex> ulck{message_mutex};
+                message_cv.wait(ulck, [this]{
+                        return !message_queue.empty();
+                    });
+                assert(locally_copied_message_queue.empty());
+                std::swap(locally_copied_message_queue, message_queue);
             }
 
             locked_consume(locally_copied_message_queue);
@@ -128,9 +122,12 @@ private:
         {
             std::queue<pmmq::XMessage> locally_copied_message_queue;
 
-            // check for a few last messages
+            // check for the last messages
             {
-                std::lock_guard<std::mutex> lck(message_mutex);
+                std::unique_lock<std::mutex> ulck{message_mutex};
+                message_cv.wait(ulck, [this]{
+                        return !message_queue.empty();
+                    });
                 assert(locally_copied_message_queue.empty());
                 std::swap(locally_copied_message_queue, message_queue);
             }
@@ -146,7 +143,7 @@ private:
             _message_queue.pop();
 
             //std::wcout << _message->contents << std::endl;
-            //std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
             ++consumed_count;
         }
     }
@@ -159,12 +156,14 @@ private:
     mutable std::queue<pmmq::XMessage> message_queue;
     mutable std::mutex message_mutex;
 
+    mutable std::condition_variable message_cv;
+
     std::atomic_bool stop;
 };
 
-static const int PROD_COUNT{ 13 };
-static const int CONS_COUNT{ 11 };
-static const int MESS_COUNT{ 420 };
+static const int PROD_COUNT{ 3 };
+static const int CONS_COUNT{ 5 };
+static const int MESS_COUNT{ 12 };
 
 
 TEST_CASE("Broker 1")

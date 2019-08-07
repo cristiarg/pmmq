@@ -38,11 +38,24 @@
 - demonstrate more throughput
 - transform hte one-message queue into a proper queue
 
+- CONSUMER:
+- polling is not the best option
+- replace polling with a condition_variable
+- does it work?
+- to demonstrate, reduce to 1 to 1 producer/consumer and check in debug
+- somewhere it waits for a condition which will never be satisfied (eg:
+  producer finished and consumer is still waiting for some data which will
+  never arrive)
+- if more prod/cons threads are added, it is visible that some of the
+  consumers terminate successfully, while others hang waiting for data (brkp
+  at the end of the consumtion loop)
+- Vocabulary: condition_variable, demonstrate multithread debug features
+
+-----------------------------------------------
 
 - CONSUMER:
 - refactor to move all boilerplate code into the interface and only leave
   the proper consumption in the derived class
-
 
 
 - discuss concurrent access to std::cout and possible solutions
@@ -54,10 +67,6 @@
 - add a message queue and a consumption loop using polling
 - demonstrate more performance
 - Vocabulary: sleep_for, mutex, polling
-
-- CONSUMER:
-- replace polling by a condition variable
-- Vocabulary: condition_variable
 
 - BROKER
 - consolitate execution of the broker logic in its own thread
