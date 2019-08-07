@@ -4,7 +4,7 @@
 - discuss bottlenecks
 - discuss entities/roles: producer, consumer, middle tier - broker
 
-- PRODUCER:
+- 1 PRODUCER:
 - add a few producer threads written ad-hoc that submit
   messages to the broker
 - demonstrate race condition (maybe check also in realease 
@@ -13,7 +13,11 @@
         - race_condition
         - join, joinable, race condition
 
-- BROKER:
+- 1_bis PRODUCER:
+- add arguments to Producer::internal_produce
+- pass: broker, message_type, id and message_count
+
+- 2 BROKER:
 - guard access to the synchronous dispatch loop
 - race condition is eliminated
 - discuss granularity of the guard (lock for all consumers, lock for one
@@ -22,7 +26,7 @@
         - std::mutex, std::lock_guard (RAII)
         - std::this_thread, yield
 
-- CONSUMER:
+- 3 CONSUMER:
 - what if consumer takes some time to process the messages
 - at this point broker and all consumers sit in the same - 'main' - thread
 - make the consumer consume in a different thread
@@ -34,11 +38,17 @@
 - Vocabulary:
         - polling, this_thread::sleep, std::atomic
 
-- CONSUMER:
+- 3_bis BROKER:
+- we can identify that there is a bottleneck in the way the broker dispatches
+  messages synchronously to the consumers
+- we might introduce here a
+- Vocabulary: std::async
+
+- 5 CONSUMER:
 - demonstrate more throughput
 - transform hte one-message queue into a proper queue
 
-- CONSUMER:
+- 6 CONSUMER:
 - polling is not the best option
 - replace polling with a condition_variable
 - make the condition variable check on the availability of data
@@ -52,7 +62,7 @@
   at the end of the consumtion loop)
 - Vocabulary: condition_variable, demonstrate multithread debug features
 
-- CONSUMER:
+- 7 CONSUMER:
 - introduce a flag to signal to the internal consume loop that data 'might' be
   available
 - make the condition variable check on the flag instead of on the availability
@@ -93,6 +103,14 @@
         - message queue
         - worker thread
 
+-----------------------------------------------
+
 STILL TO BE COVERED:
 - async/future/promise
 - deadlock
+
+-----------------------------------------------
+NOTES FOR STARTING VERSION:
+virtual void IConsumer::consume(const XMessage& _message) const = 0;
+
+
